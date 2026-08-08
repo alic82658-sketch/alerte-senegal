@@ -9,3 +9,5 @@
 | 2026-08 | Vérification promue au rang de moteur principal | Le fil d'actualité seul ne crée pas de rétention, la vérification évite une perte concrète |
 | 2026-08 | Plainte : déclaré contre vérifié séparés | Une plainte déposée prouve une accusation, pas une culpabilité |
 | 2026-08 | Statuts typographiques, pas de pastilles | Lisibilité sans distinction de couleur |
+| 2026-08-08 | Tailwind v3 branché sur `tokens.css` par référence de variables | Le thème Tailwind ne détient aucune valeur en dur, il pointe vers les jetons `var(--as-*)` ; `tokens.css` reste seule autorité |
+| 2026-08-08 | « Big Shoulders » accepté comme nom technique de « Big Shoulders Display » | Simple renommage côté Google Fonts, dessin identique ; `tokens.css` mis à jour et polices auto-hébergées via `next/font` (Big Shoulders 800/900, Martian Mono) |

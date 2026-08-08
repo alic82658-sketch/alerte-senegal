@@ -1,0 +1,16 @@
+/* Les jetons d'abord : ils définissent les variables que Tailwind consomme. */
+@import "../design/tokens.css";
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html {
+  background: var(--as-fond);
+  color: var(--as-encre);
+}
+
+body {
+  font-family: var(--as-texte);
+  font-size: var(--as-t-m);
+}
