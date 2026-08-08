@@ -29,14 +29,16 @@ export async function TickerAlertes() {
 
   return (
     <div
-      className="bg-encre text-fond overflow-hidden whitespace-nowrap"
+      className="flex shrink-0 overflow-hidden whitespace-nowrap bg-encre text-fond"
       aria-label="Dernières alertes"
     >
-      <div className="as-defile inline-block py-1">
+      {/* Piste en flex (pas inline-block) : plus de boîte de ligne, donc le texte
+          n'est plus coupé en hauteur. shrink-0 pour déborder et défiler. */}
+      <div className="as-defile flex items-center shrink-0 py-1.5">
         {piste.map((it, i) => (
           <span
             key={`${it.id}-${i}`}
-            className="font-texte text-xs uppercase tracking-wide px-5"
+            className="font-texte text-xs uppercase leading-none tracking-wide px-5"
           >
             {it.titre} · {it.zone} · {it.temps} ·{" "}
             <span className="text-signal">{it.statut}</span>
