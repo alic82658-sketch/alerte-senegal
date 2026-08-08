@@ -8,7 +8,8 @@ const LIBELLES: Record<AlertStatus, string> = {
   verifie: "Vérifiée",
   en_cours: "En cours",
   resolu: "Résolue",
-  faux: "Fausse alerte",
+  // « Non confirmée » plutôt que « Fausse » : ne pas accuser l'auteur du signalement.
+  faux: "Non confirmée",
   hors_de_cause: "Mise hors de cause",
   classe_sans_suite: "Classée sans suite",
 };

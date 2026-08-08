@@ -56,6 +56,18 @@ export default async function Accueil({ searchParams }: AccueilProps) {
     .not("status", "in", "(resolu,faux)");
   const nbActives = count ?? 0;
 
+  // Jamais de « 0 » sur l'écran principal : si la zone est vide, on montre le
+  // reste du Sénégal avec une invitation à élargir.
+  let resteActives = 0;
+  if (nbActives === 0) {
+    const { count: c } = await supabase
+      .from("alerts_public")
+      .select("*", { count: "exact", head: true })
+      .neq("zone_slug", ZONE_COURANTE.slug)
+      .not("status", "in", "(resolu,faux)");
+    resteActives = c ?? 0;
+  }
+
   // Flux selon le filtre (filtres avant tri, pour le typage supabase-js).
   let requete = supabase.from("alerts_public").select("*");
   if (filtreActif.portee === "zone") {
@@ -116,17 +128,38 @@ export default async function Accueil({ searchParams }: AccueilProps) {
         })}
       </nav>
 
-      {/* Synthèse : nombre d'alertes actives dans la zone */}
-      <section className="flex items-end gap-pad border-y border-gris-2 bg-fond-2 px-pad py-pad">
-        <span className="font-titre font-black text-2xl leading-none text-signal">
-          {nbActives}
-        </span>
-        <span className="font-texte text-s leading-snug text-gris">
-          alerte{nbActives > 1 ? "s" : ""} active{nbActives > 1 ? "s" : ""}
-          <br />
-          dans votre quartier
-        </span>
-      </section>
+      {/* Synthèse : jamais un « 0 » sur l'écran principal */}
+      {nbActives > 0 ? (
+        <section className="flex items-end gap-pad border-y border-gris-2 bg-fond-2 px-pad py-pad">
+          <span className="font-titre font-black text-2xl leading-none text-signal">
+            {nbActives}
+          </span>
+          <span className="font-texte text-s leading-snug text-gris">
+            alerte{nbActives > 1 ? "s" : ""} active{nbActives > 1 ? "s" : ""}
+            <br />
+            dans votre quartier
+          </span>
+        </section>
+      ) : resteActives > 0 ? (
+        <Link
+          href="/accueil?filtre=tout"
+          className="flex items-end gap-pad border-y border-gris-2 bg-fond-2 px-pad py-pad"
+        >
+          <span className="font-titre font-black text-2xl leading-none text-signal">
+            {resteActives}
+          </span>
+          <span className="font-texte text-s leading-snug text-gris">
+            alerte{resteActives > 1 ? "s" : ""} active
+            {resteActives > 1 ? "s" : ""} ailleurs au Sénégal
+            <br />
+            élargissez votre zone
+          </span>
+        </Link>
+      ) : (
+        <section className="border-y border-gris-2 bg-fond-2 px-pad py-pad font-texte text-s text-gris">
+          Aucune alerte active pour le moment.
+        </section>
+      )}
 
       {/* Flux groupé par jour */}
       <section>
