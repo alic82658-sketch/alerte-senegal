@@ -65,10 +65,12 @@ export default async function Seuil({ searchParams }: SeuilProps) {
   const { membres: nbMembres, resolues: nbResolues } = await statsCommunaute();
 
   return (
-    <div className="as-appli">
+    // Hauteur fixe : le seuil tient dans un seul écran, sans défilement.
+    <div className="as-appli h-dvh overflow-hidden">
       <TickerAlertes />
 
-      <main className="relative flex-1 flex flex-col justify-end overflow-hidden bg-fond-2">
+      {/* min-h-0 : le mur en position absolue reste borné à la hauteur du conteneur. */}
+      <main className="relative flex-1 min-h-0 flex flex-col justify-end overflow-hidden bg-fond-2">
         {/* Mur d'alertes caviardé, en fond : il y a quelque chose derrière. */}
         <div className="as-mur" aria-hidden="true">
           {mur.map((titre, i) => {
