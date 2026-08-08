@@ -5,8 +5,19 @@ import { createClient } from "@/lib/supabase/server";
 import type { AlertCategory, Zone } from "@/lib/types";
 
 // Parcours de signalement. Rendu serveur, navigation par étapes en URL,
-// server actions : fonctionne sans JavaScript. Auteur nul tant que l'auth
-// n'existe pas — l'insertion passe par la fonction RPC creer_signalement.
+// server actions : fonctionne sans JavaScript. L'insertion passe par la
+// fonction RPC creer_signalement (security definer, appelable par anon ;
+// alerte en 'en_attente'/'temoignage', auteur = profil « Signalement anonyme »).
+//
+// Contrat de la fonction (déployée en base) :
+//   creer_signalement(
+//     p_title text, p_description text, p_category alert_category,
+//     p_zone_slug text, p_happened_at timestamptz = null,
+//     p_imei text = null, p_plate text = null,
+//     p_phone_number text = null, p_account_number text = null,
+//     p_complaint_declared boolean = false, p_source source_channel = 'site')
+//   → ligne { nouvelle_slug text, zone_membres bigint }
+//   exceptions : titre_trop_court (<5), description_trop_courte (<20), zone_inconnue
 export const dynamic = "force-dynamic";
 
 const BROUILLON = "as_signalement";
@@ -15,7 +26,7 @@ type Brouillon = {
   categorie?: AlertCategory;
   titre?: string;
   description?: string;
-  zone_id?: string;
+  zone_slug?: string;
 };
 
 const CATEGORIES: { slug: AlertCategory; label: string }[] = [
@@ -38,27 +49,36 @@ const CATEGORIES: { slug: AlertCategory; label: string }[] = [
 ];
 
 // Champ conditionnel d'identifiant selon la catégorie (étape 3).
+// `rpc` = nom du paramètre structuré de la fonction.
+type ParamIdentifiant = "p_imei" | "p_plate" | "p_phone_number";
 const IDENTIFIANT: Partial<
-  Record<AlertCategory, { name: string; label: string; court: string; placeholder: string }>
+  Record<AlertCategory, { name: string; rpc: ParamIdentifiant; label: string; placeholder: string }>
 > = {
   vol: {
     name: "imei",
+    rpc: "p_imei",
     label: "IMEI (si c'est un téléphone)",
-    court: "IMEI",
     placeholder: "15 chiffres — tapez *#06#",
   },
   vehicule_recherche: {
-    name: "plaque",
+    name: "plate",
+    rpc: "p_plate",
     label: "Plaque d'immatriculation",
-    court: "Plaque",
     placeholder: "DK 1234 A",
   },
   arnaque: {
-    name: "contact",
+    name: "phone",
+    rpc: "p_phone_number",
     label: "Numéro de téléphone ou de compte",
-    court: "Contact signalé",
     placeholder: "Wave, Orange Money, téléphone…",
   },
+};
+
+const ERREURS: Record<string, string> = {
+  titre: "Le titre doit faire au moins 5 caractères.",
+  desc: "La description doit faire au moins 20 caractères.",
+  zone: "Choisissez un quartier valide.",
+  generique: "Renseignez le titre, la description et le quartier.",
 };
 
 async function lireBrouillon(): Promise<Brouillon> {
@@ -96,42 +116,50 @@ async function soumettreDetails(formData: FormData) {
   if (!b.categorie) redirect("/signaler");
   const titre = String(formData.get("titre") ?? "").trim();
   const description = String(formData.get("description") ?? "").trim();
-  const zone_id = String(formData.get("zone_id") ?? "").trim();
-  if (!titre || !description || !zone_id) redirect("/signaler?etape=2&err=1");
-  await ecrireBrouillon({ ...b, titre, description, zone_id });
+  const zone_slug = String(formData.get("zone_slug") ?? "").trim();
+  if (titre.length < 5) redirect("/signaler?etape=2&err=titre");
+  if (description.length < 20) redirect("/signaler?etape=2&err=desc");
+  if (!zone_slug) redirect("/signaler?etape=2&err=zone");
+  await ecrireBrouillon({ ...b, titre, description, zone_slug });
   redirect("/signaler?etape=3");
 }
 
 async function envoyer(formData: FormData) {
   "use server";
   const b = await lireBrouillon();
-  if (!b.categorie || !b.titre || !b.description || !b.zone_id) {
+  if (!b.categorie || !b.titre || !b.description || !b.zone_slug) {
     redirect("/signaler");
   }
 
-  // Identifiant conditionnel ajouté à la description (aucune colonne dédiée).
-  let description = b.description!;
+  const args: Record<string, unknown> = {
+    p_title: b.titre,
+    p_description: b.description,
+    p_category: b.categorie,
+    p_zone_slug: b.zone_slug,
+    p_happened_at: String(formData.get("happened_at") ?? "").trim() || null,
+    p_complaint_declared: formData.get("plainte") === "1",
+  };
+
+  // Identifiant conditionnel → paramètre structuré de la fonction.
   const idf = IDENTIFIANT[b.categorie!];
   if (idf) {
     const val = String(formData.get(idf.name) ?? "").trim();
-    if (val) description += `\n\n${idf.court} : ${val}`;
+    if (val) args[idf.rpc] = val;
   }
 
-  const happened = String(formData.get("happened_at") ?? "").trim();
-  const plainte = formData.get("plainte") === "1";
-
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc("creer_signalement", {
-    p_categorie: b.categorie,
-    p_titre: b.titre,
-    p_description: description,
-    p_zone_id: b.zone_id,
-    p_happened_at: happened || null,
-    p_plainte: plainte,
-  });
-  if (error) redirect("/signaler?etape=3&err=1");
+  const { data, error } = await supabase.rpc("creer_signalement", args);
 
-  const membres = typeof data === "number" ? data : Number(data ?? 0);
+  if (error) {
+    const m = error.message ?? "";
+    if (m.includes("titre_trop_court")) redirect("/signaler?etape=2&err=titre");
+    if (m.includes("description_trop_courte")) redirect("/signaler?etape=2&err=desc");
+    if (m.includes("zone_inconnue")) redirect("/signaler?etape=2&err=zone");
+    redirect("/signaler?etape=3&err=1");
+  }
+
+  const row = Array.isArray(data) ? data[0] : data;
+  const membres = Number((row as { zone_membres?: number })?.zone_membres ?? 0);
   (await cookies()).delete(BROUILLON);
   redirect(`/signaler?ok=1&membres=${membres}&cat=${b.categorie}`);
 }
@@ -209,7 +237,9 @@ export default async function Signaler({ searchParams }: PageProps) {
 
   const etape = sp.etape === "2" ? 2 : sp.etape === "3" ? 3 : 1;
   const b = await lireBrouillon();
-  const erreur = sp.err === "1";
+  const messageErreur = sp.err
+    ? (ERREURS[sp.err] ?? ERREURS.generique)
+    : null;
 
   // ---- Étape 1 : catégorie ----
   if (etape === 1) {
@@ -244,18 +274,16 @@ export default async function Signaler({ searchParams }: PageProps) {
     const supabase = await createClient();
     const { data } = await supabase
       .from("zones")
-      .select("id, name")
+      .select("id, name, slug")
       .order("name");
-    const zones = (data as Pick<Zone, "id" | "name">[]) ?? [];
+    const zones = (data as Pick<Zone, "id" | "name" | "slug">[]) ?? [];
 
     return (
       <div className="flex flex-col">
         <Entete n={2} />
         <form action={soumettreDetails} className="flex flex-col gap-pad p-pad">
-          {erreur && (
-            <p className="font-texte text-xs text-signal">
-              Renseignez le titre, la description et le quartier.
-            </p>
+          {messageErreur && (
+            <p className="font-texte text-xs text-signal">{messageErreur}</p>
           )}
 
           <label className="flex flex-col gap-gap">
@@ -266,6 +294,7 @@ export default async function Signaler({ searchParams }: PageProps) {
               type="text"
               name="titre"
               required
+              minLength={5}
               maxLength={120}
               defaultValue={b.titre ?? ""}
               className="border-2 border-encre bg-fond px-3 py-3 font-texte text-m text-encre outline-none"
@@ -279,6 +308,7 @@ export default async function Signaler({ searchParams }: PageProps) {
             <textarea
               name="description"
               required
+              minLength={20}
               rows={4}
               defaultValue={b.description ?? ""}
               className="border-2 border-encre bg-fond px-3 py-3 font-texte text-m text-encre outline-none"
@@ -290,16 +320,16 @@ export default async function Signaler({ searchParams }: PageProps) {
               Quartier
             </span>
             <select
-              name="zone_id"
+              name="zone_slug"
               required
-              defaultValue={b.zone_id ?? ""}
+              defaultValue={b.zone_slug ?? ""}
               className="border-2 border-encre bg-fond px-3 py-3 font-texte text-m text-encre outline-none"
             >
               <option value="" disabled>
                 Choisir un quartier
               </option>
               {zones.map((z) => (
-                <option key={z.id} value={z.id}>
+                <option key={z.id} value={z.slug ?? ""}>
                   {z.name}
                 </option>
               ))}
@@ -323,14 +353,14 @@ export default async function Signaler({ searchParams }: PageProps) {
   }
 
   // ---- Étape 3 : date/heure, identifiant conditionnel, plainte ----
-  if (!b.titre || !b.zone_id || !b.categorie) redirect("/signaler?etape=2");
+  if (!b.titre || !b.zone_slug || !b.categorie) redirect("/signaler?etape=2");
   const idf = IDENTIFIANT[b.categorie];
 
   return (
     <div className="flex flex-col">
       <Entete n={3} />
       <form action={envoyer} className="flex flex-col gap-pad p-pad">
-        {erreur && (
+        {sp.err && (
           <p className="font-texte text-xs text-signal">
             L&apos;envoi a échoué. Vérifiez les champs et réessayez.
           </p>
