@@ -1,26 +1,14 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import type { AlertPublic, AlertStatus } from "@/lib/types";
+import type { AlertPublic } from "@/lib/types";
+import { libelleStatut, classeStatut } from "@/lib/statuts";
 
 // Lecture de données live (vue alerts_public) : rendu serveur à la demande.
 // La coque et le <main> sont fournis par le layout (app).
 export const dynamic = "force-dynamic";
 
 type PageProps = { params: Promise<{ slug: string }> };
-
-// Libellé typographique du statut. La couleur ne fait que renforcer :
-// le libellé porte l'information, lisible sans distinction de couleur.
-const STATUTS: Record<AlertStatus, { label: string; classe: string }> = {
-  temoignage: { label: "Témoignage", classe: "as-etat--temoignage" },
-  en_verification: { label: "En vérification", classe: "as-etat--verification" },
-  verifie: { label: "Vérifié", classe: "as-etat--verifie" },
-  en_cours: { label: "En cours", classe: "" },
-  resolu: { label: "Résolu", classe: "as-etat--resolu" },
-  faux: { label: "Faux", classe: "as-etat--faux" },
-  hors_de_cause: { label: "Hors de cause", classe: "" },
-  classe_sans_suite: { label: "Classé sans suite", classe: "" },
-};
 
 function formatDate(iso: string): string {
   return new Intl.DateTimeFormat("fr-FR", {
@@ -44,17 +32,6 @@ async function getAlerte(slug: string): Promise<AlertPublic | null> {
   return (data as AlertPublic) ?? null;
 }
 
-async function getZoneName(zoneId: string | null): Promise<string | null> {
-  if (!zoneId) return null;
-  const supabase = await createClient();
-  const { data } = await supabase
-    .from("zones")
-    .select("name")
-    .eq("id", zoneId)
-    .maybeSingle();
-  return (data?.name as string) ?? null;
-}
-
 export async function generateMetadata({
   params,
 }: PageProps): Promise<Metadata> {
@@ -72,8 +49,6 @@ export default async function FicheAlerte({ params }: PageProps) {
   const alerte = await getAlerte(slug);
   if (!alerte) notFound();
 
-  const zoneName = await getZoneName(alerte.zone_id);
-  const statut = STATUTS[alerte.status];
   const dateAffichee =
     alerte.happened_at ?? alerte.published_at ?? alerte.created_at;
 
@@ -81,7 +56,9 @@ export default async function FicheAlerte({ params }: PageProps) {
     <article className="flex flex-col gap-pad p-pad">
       {/* Statuts typographiques */}
       <div className="flex flex-wrap gap-gap">
-        <span className={`as-etat ${statut.classe}`}>{statut.label}</span>
+        <span className={`as-etat ${classeStatut(alerte.status)}`}>
+          {libelleStatut(alerte.status)}
+        </span>
         {alerte.complaint_verified && (
           <span className="as-etat as-etat--plainte">Plainte vérifiée</span>
         )}
@@ -91,9 +68,9 @@ export default async function FicheAlerte({ params }: PageProps) {
         {alerte.title}
       </h1>
 
-      {/* Méta : quartier · date */}
+      {/* Méta : quartier · date (zone_name vient de la vue, plus de jointure) */}
       <p className="font-texte text-s text-gris uppercase tracking-wide">
-        {zoneName ? `${zoneName} · ` : ""}
+        {alerte.zone_name ? `${alerte.zone_name} · ` : ""}
         {formatDate(dateAffichee)}
       </p>
 
