@@ -65,8 +65,9 @@ export default async function Seuil({ searchParams }: SeuilProps) {
   const { membres: nbMembres, resolues: nbResolues } = await statsCommunaute();
 
   return (
-    // Hauteur fixe : le seuil tient dans un seul écran, sans défilement.
-    <div className="as-appli h-dvh overflow-hidden">
+    // position:fixed + inset:0 : remplit exactement le viewport, sans dépendre de
+    // `dvh` (non supporté sur vieux Android) et sans qu'un parent impose sa hauteur.
+    <div className="as-appli fixed inset-0 overflow-hidden">
       <TickerAlertes />
 
       {/* min-h-0 : le mur en position absolue reste borné à la hauteur du conteneur. */}
