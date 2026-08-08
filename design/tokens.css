@@ -1,0 +1,96 @@
+/* =========================================================
+   ALERTE SÉNÉGAL — jetons de design
+   Ce fichier fait autorité. Aucune couleur en dur ailleurs.
+   Palette retenue : pétrole & terracotta sur fond clair.
+   ========================================================= */
+
+:root{
+  /* ---- surfaces ---- */
+  --as-fond:        #FAFAF8;   /* fond principal, jamais blanc pur */
+  --as-fond-2:      #EEF0EF;   /* zones secondaires, vignettes */
+
+  /* ---- encre ---- */
+  --as-encre:       #12303A;   /* pétrole, remplace le noir */
+  --as-gris:        #63757B;   /* texte secondaire */
+  --as-gris-2:      #D2D9DB;   /* filets, bordures */
+
+  /* ---- états ---- */
+  --as-signal:      #D2652F;   /* terracotta : urgence, action */
+  --as-bon:         #12766B;   /* résolu */
+  --as-attente:     #8A7A3F;   /* en vérification */
+
+  /* ---- typographie ---- */
+  --as-titre: "Big Shoulders Display", sans-serif;
+  --as-texte: "Martian Mono", monospace;
+
+  --as-t-xs:   9px;    /* libellés, méta */
+  --as-t-s:    10.5px; /* texte courant dense */
+  --as-t-m:    12px;   /* texte courant */
+  --as-t-l:    16px;   /* sous-titres */
+  --as-t-xl:   23px;   /* titres de carte */
+  --as-t-2xl:  46px;   /* chiffres clés */
+
+  /* ---- rythme ---- */
+  --as-pad:    14px;   /* marge latérale mobile */
+  --as-gap:    9px;
+  --as-filet:  1px;
+  --as-filet-fort: 1.5px;
+
+  /* ---- interdits, rappelés en clair ---- */
+  --as-radius: 0;      /* aucun coin arrondi */
+  --as-ombre:  none;   /* aucune ombre portée */
+}
+
+/* =========================================================
+   ÉTATS D'ALERTE
+   Le libellé porte l'information. La couleur ne fait que renforcer.
+   ========================================================= */
+.as-etat{
+  font-family:var(--as-texte);
+  font-size:8px;letter-spacing:.06em;text-transform:uppercase;
+  padding:3px 6px;border:var(--as-filet) solid currentColor;
+  white-space:nowrap;display:inline-block;
+}
+.as-etat--temoignage { color:var(--as-gris) }
+.as-etat--verification{ color:var(--as-attente) }
+.as-etat--verifie    { color:var(--as-encre) }
+.as-etat--plainte    { color:var(--as-encre); border-style:double; border-width:3px }
+.as-etat--resolu     { color:#fff; background:var(--as-bon); border-color:var(--as-bon) }
+.as-etat--faux       { color:var(--as-gris); text-decoration:line-through }
+
+/* =========================================================
+   COQUE MOBILE
+   Cadre le produit à 420px sur grand écran sans media query.
+   ========================================================= */
+.as-appli{
+  container-type:inline-size;
+  width:100%;max-width:420px;margin:0 auto;
+  background:var(--as-fond);color:var(--as-encre);
+  display:flex;flex-direction:column;min-height:100dvh;
+}
+
+/* =========================================================
+   ACTION PRINCIPALE
+   Un seul élément terracotta plein par écran.
+   ========================================================= */
+.as-action{
+  border:0;background:var(--as-encre);color:var(--as-fond);
+  font-family:var(--as-titre);font-weight:900;font-size:19px;
+  text-transform:uppercase;letter-spacing:.04em;
+  padding:14px 20px;cursor:pointer;transition:background .15s;
+}
+.as-action:hover{ background:var(--as-signal) }
+.as-action--signal{ background:var(--as-signal);color:#fff }
+.as-action:focus-visible{ outline:3px solid var(--as-signal);outline-offset:3px }
+
+/* =========================================================
+   CHAMP
+   ========================================================= */
+.as-champ{ display:flex;border:2px solid var(--as-encre);background:var(--as-fond) }
+.as-champ input{
+  flex:1;min-width:0;border:0;outline:none;background:transparent;
+  color:var(--as-encre);font-family:var(--as-texte);font-size:var(--as-t-m);
+  padding:14px 12px;
+}
+.as-champ input::placeholder{ color:var(--as-gris) }
+.as-champ:focus-within{ border-color:var(--as-signal) }

@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Alerte Sénégal — Accueil</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@500;700;800;900&family=Martian+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+/* =========================================================
+   ALERTE SÉNÉGAL — jetons de design
+   Palette : pétrole & terracotta sur fond clair
+   ========================================================= */
+:root, body[data-p="petrole"]{
+  --fond:#FAFAF8;
+  --fond2:#EEF0EF;
+  --encre:#12303A;      /* pétrole, remplace le noir */
+  --gris:#63757B;
+  --gris2:#D2D9DB;
+  --signal:#D2652F;     /* terracotta : urgence, action */
+  --bon:#12766B;        /* résolu */
+  --attente:#8A7A3F;    /* en vérification */
+
+  --t-xs:9px; --t-s:10.5px; --t-m:12px;
+}
+body[data-p="vert"]{
+  --fond:#FBFAF7;
+  --fond2:#F0F1EC;
+  --encre:#14261C;      /* vert très sombre */
+  --gris:#6B7069;
+  --gris2:#D6D8D2;
+  --signal:#C2650A;     /* ambre brûlé : urgence, action */
+  --bon:#0F7A4A;        /* résolu */
+  --attente:#93803F;    /* en vérification */
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{background:#151513}
+body{
+  font-family:"Martian Mono",monospace;
+  color:var(--encre);
+  -webkit-font-smoothing:antialiased;
+  display:flex;justify-content:center;min-height:100dvh;
+}
+.appli{
+  container-type:inline-size;
+  width:100%;max-width:420px;background:var(--fond);
+  display:flex;flex-direction:column;min-height:100dvh;
+  position:relative;
+}
+.mono{font-family:"Martian Mono",monospace;font-size:var(--t-xs);letter-spacing:.02em;text-transform:uppercase}
+.titre{font-family:"Big Shoulders Display",sans-serif;font-weight:900;text-transform:uppercase;letter-spacing:.01em}
+
+/* ---------- bandeau ---------- */
+.bandeau{background:var(--encre);color:var(--fond);overflow:hidden;white-space:nowrap;flex:0 0 auto}
+.rail{display:inline-block;padding:5px 0;animation:defile 38s linear infinite}
+.rail b{font-size:var(--t-xs);font-weight:700;letter-spacing:.04em;text-transform:uppercase;padding:0 20px}
+.rail b i{color:var(--signal);font-style:normal}
+@keyframes defile{to{transform:translateX(-50%)}}
+
+/* ---------- entête ---------- */
+.haut{
+  position:sticky;top:0;z-index:20;background:var(--fond);
+  border-bottom:1.5px solid var(--encre);
+}
+.haut .l1{display:flex;justify-content:space-between;align-items:center;padding:11px 14px 9px}
+.marque{font-size:19px}
+.zone{display:flex;align-items:center;gap:5px;color:var(--signal);cursor:pointer;background:none;border:0;font-family:inherit}
+.zone .fl{font-size:8px}
+
+/* filtres */
+.filtres{display:flex;gap:6px;overflow-x:auto;padding:0 14px 10px;scrollbar-width:none}
+.filtres::-webkit-scrollbar{display:none}
+.filtres button{
+  flex:0 0 auto;border:1px solid var(--gris2);background:transparent;color:var(--gris);
+  font-family:inherit;font-size:var(--t-xs);letter-spacing:.03em;text-transform:uppercase;
+  padding:7px 11px;cursor:pointer;transition:.12s;
+}
+.filtres button:hover{border-color:var(--encre);color:var(--encre)}
+.filtres button.on{background:var(--encre);border-color:var(--encre);color:var(--fond)}
+
+/* ---------- bloc autour de moi ---------- */
+.autour{
+  padding:14px;border-bottom:1px solid var(--gris2);background:var(--fond2);
+  display:flex;justify-content:space-between;align-items:flex-end;gap:14px;
+}
+.autour .n{font-family:"Big Shoulders Display",sans-serif;font-weight:900;font-size:46px;line-height:.8;color:var(--signal)}
+.autour .lab{color:var(--gris);line-height:1.5;max-width:20ch}
+.autour .carte{
+  flex:0 0 76px;height:60px;border:1px solid var(--gris2);background:var(--fond);
+  position:relative;overflow:hidden;
+}
+.autour .carte i{position:absolute;width:5px;height:5px;background:var(--signal)}
+.autour .carte i.f{background:var(--bon)}
+
+/* ---------- flux ---------- */
+.flux{flex:1;padding-bottom:84px}
+.jour{
+  padding:12px 14px 6px;color:var(--gris);
+  display:flex;align-items:center;gap:8px;
+}
+.jour::after{content:"";flex:1;height:1px;background:var(--gris2)}
+
+.carte-a{
+  display:block;border-bottom:1px solid var(--gris2);padding:13px 14px 15px;
+  text-decoration:none;color:inherit;background:var(--fond);
+  border-left:3px solid transparent;transition:background .12s;
+}
+.carte-a:hover{background:var(--fond2)}
+.carte-a.urgent{border-left-color:var(--signal)}
+.carte-a .meta{display:flex;align-items:center;gap:7px;color:var(--gris);margin-bottom:6px;flex-wrap:wrap}
+.carte-a .meta .qui{color:var(--encre);font-weight:600}
+.carte-a h2{font-family:"Big Shoulders Display",sans-serif;font-weight:800;text-transform:uppercase;
+  font-size:23px;line-height:1.02;letter-spacing:.005em;margin-bottom:8px}
+.carte-a .bas-c{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:9px}
+.carte-a .suivi{color:var(--gris)}
+
+.etat{
+  font-family:"Martian Mono",monospace;font-size:8px;letter-spacing:.06em;text-transform:uppercase;
+  padding:3px 6px;border:1px solid currentColor;white-space:nowrap;flex:0 0 auto;
+}
+.etat.temoin{color:var(--gris)}
+.etat.verif{color:var(--attente)}
+.etat.confirme{color:var(--encre)}
+.etat.resolu{color:var(--bon);background:var(--bon);border-color:var(--bon);color:#fff}
+.etat.plainte{color:var(--encre);border-style:double;border-width:3px}
+
+.vignette{
+  width:100%;aspect-ratio:16/7;background:var(--fond2);
+  border:1px solid var(--gris2);margin-bottom:9px;
+  display:flex;align-items:center;justify-content:center;color:var(--gris2);
+  font-family:"Big Shoulders Display",sans-serif;font-size:40px;font-weight:900;
+}
+
+/* ---------- barre basse ---------- */
+.nav{
+  position:fixed;bottom:0;left:0;right:0;z-index:30;
+  max-width:420px;margin:0 auto;
+  background:var(--fond);border-top:1.5px solid var(--encre);
+  display:grid;grid-template-columns:repeat(5,1fr);
+}
+.nav a{
+  display:flex;flex-direction:column;align-items:center;gap:3px;
+  padding:10px 2px 12px;text-decoration:none;color:var(--gris);
+  font-size:8px;letter-spacing:.05em;text-transform:uppercase;
+}
+.nav a.actif{color:var(--encre)}
+.nav a .g{font-family:"Big Shoulders Display",sans-serif;font-weight:900;font-size:17px;line-height:1}
+.nav a.signaler{background:var(--signal);color:#fff}
+.nav a.signaler .g{font-size:19px}
+
+@container (min-width:400px){
+  .carte-a h2{font-size:25px}
+}
+/* ---------- commutateur de comparaison (hors produit) ---------- */
+.switch{
+  position:fixed;top:12px;right:12px;z-index:60;display:flex;gap:5px;
+}
+.switch button{
+  background:#1D1D1B;border:1px solid #3A3A38;color:#B8B5AD;
+  font-family:"Martian Mono",monospace;font-size:8px;letter-spacing:.1em;
+  text-transform:uppercase;padding:7px 10px;cursor:pointer;
+}
+.switch button.on{background:#EDEAE3;color:#151513;border-color:#EDEAE3}
+@media(max-width:900px){.switch{top:auto;bottom:96px;right:8px}}
+@media(prefers-reduced-motion:reduce){.rail{animation:none}}
+</style>
+</head>
+<body data-p="petrole">
+<div class="switch">
+  <button data-v="petrole" class="on">Pétrole</button>
+  <button data-v="vert">Vert</button>
+</div>
+<div class="appli">
+
+  <div class="bandeau"><div class="rail" id="rail"></div></div>
+
+  <header class="haut">
+    <div class="l1">
+      <span class="marque titre">Alerte Sénégal</span>
+      <button class="zone mono">Ngor, Almadies <span class="fl">▼</span></button>
+    </div>
+    <div class="filtres">
+      <button class="on">Autour de moi</button>
+      <button>Tout le Sénégal</button>
+      <button>Disparitions</button>
+      <button>Vols</button>
+      <button>Arnaques</button>
+      <button>Eau et électricité</button>
+      <button>Solidarité</button>
+    </div>
+  </header>
+
+  <section class="autour">
+    <div>
+      <div class="n">7</div>
+      <div class="lab mono">alertes actives<br>dans votre quartier</div>
+    </div>
+    <div class="carte">
+      <i style="top:12px;left:18px"></i><i style="top:30px;left:44px"></i>
+      <i style="top:44px;left:22px"></i><i class="f" style="top:20px;left:58px"></i>
+      <i style="top:38px;left:10px"></i>
+    </div>
+  </section>
+
+  <main class="flux" id="flux"></main>
+
+  <nav class="nav">
+    <a href="#" class="actif"><span class="g">A</span>Accueil</a>
+    <a href="#"><span class="g">E</span>Explorer</a>
+    <a href="#" class="signaler"><span class="g">+</span>Signaler</a>
+    <a href="#"><span class="g">S</span>Suivis</a>
+    <a href="#"><span class="g">P</span>Profil</a>
+  </nav>
+
+</div>
+
+<script>
+const FLASH=[
+ ["Moto Jakarta rouge","Grand Yoff","il y a 6 min"],
+ ["Recherche témoins","carrefour Yoff","il y a 14 min"],
+ ["Coupure d'eau","Parcelles unité 15","il y a 22 min"],
+ ["Portefeuille retrouvé","Plateau","résolu"],
+ ["Faux agent immobilier","Médina","vérifié"]
+];
+document.getElementById('rail').innerHTML =
+  FLASH.map(f=>'<b>'+f[0]+' · '+f[1]+' · <i>'+f[2]+'</i></b>').join('').repeat(2);
+
+const FLUX=[
+ {j:"Aujourd'hui"},
+ {qui:"Aïda D.",lieu:"Ngor",t:"6 min",titre:"Moto Jakarta rouge emportée devant la boutique",etat:["confirme","Vérifiée"],suivi:"34 personnes suivent",urgent:true,img:true},
+ {qui:"Ousmane F.",lieu:"Almadies",t:"41 min",titre:"Recherche mon père, sorti mardi matin, n'est pas rentré",etat:["plainte","Plainte vérifiée"],suivi:"212 personnes suivent",urgent:true,img:true},
+ {qui:"Fatou N.",lieu:"Ngor",t:"1 h",titre:"Coupure d'eau depuis trois jours, secteur mosquée",etat:["verif","En vérification"],suivi:"9 personnes suivent"},
+ {j:"Hier"},
+ {qui:"Cheikh S.",lieu:"Yoff",t:"hier",titre:"Portefeuille trouvé avec pièces d'identité au nom de M. S.",etat:["resolu","Rendu à son propriétaire"],suivi:"Résolue grâce à 3 informations"},
+ {qui:"Ndèye B.",lieu:"Almadies",t:"hier",titre:"Faux agent immobilier, avance demandée avant visite",etat:["temoin","Témoignage"],suivi:"58 personnes suivent"}
+];
+
+let h='';
+FLUX.forEach(o=>{
+  if(o.j){h+='<div class="jour mono">'+o.j+'</div>';return}
+  h+='<a href="#" class="carte-a'+(o.urgent?' urgent':'')+'">'
+   + '<div class="meta mono"><span class="qui">'+o.qui+'</span><span>'+o.lieu+'</span><span>·</span><span>'+o.t+'</span></div>'
+   + (o.img?'<div class="vignette">PHOTO</div>':'')
+   + '<h2>'+o.titre+'</h2>'
+   + '<div class="bas-c"><span class="etat '+o.etat[0]+'">'+o.etat[1]+'</span>'
+   + '<span class="suivi mono">'+o.suivi+'</span></div></a>';
+});
+document.getElementById('flux').innerHTML=h;
+
+document.querySelectorAll('.switch button').forEach(b=>{
+  b.onclick=()=>{
+    document.body.dataset.p=b.dataset.v;
+    document.querySelectorAll('.switch button').forEach(x=>x.classList.toggle('on',x===b));
+  };
+});
+</script>
+</body>
+</html>

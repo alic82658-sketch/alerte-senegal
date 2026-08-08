@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Alerte Sénégal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@500;700;800;900&family=Martian+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --blanc:#FFFFFF;
+  --gris1:#F4F3F0;
+  --encre:#111110;
+  --gris:#6E6C66;
+  --gris2:#D8D6D0;
+  --signal:#D62B0F;
+  --vert:#0F7A4A;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{background:var(--blanc);color:var(--encre)}
+body{
+  font-family:"Martian Mono",monospace;
+  min-height:100dvh;display:flex;flex-direction:column;
+  overflow-x:hidden;-webkit-font-smoothing:antialiased;
+}
+.mono{font-family:"Martian Mono",monospace;font-size:9.5px;letter-spacing:.02em;text-transform:uppercase}
+
+/* ---------- bandeau ---------- */
+.bandeau{
+  background:var(--encre);color:var(--blanc);
+  overflow:hidden;white-space:nowrap;flex:0 0 auto;position:relative;z-index:5;
+}
+.rail{display:inline-block;padding:6px 0;animation:defile 36s linear infinite}
+.rail b{font-family:"Martian Mono",monospace;font-size:9.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;padding:0 22px}
+.rail b i{color:var(--signal);font-style:normal}
+@keyframes defile{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+
+/* ---------- entête ---------- */
+.haut{
+  display:flex;justify-content:space-between;align-items:center;gap:10px;
+  padding:12px 16px;border-bottom:1.5px solid var(--encre);
+  position:relative;z-index:5;flex:0 0 auto;background:var(--blanc);
+}
+.marque{font-family:"Big Shoulders Display",sans-serif;font-weight:900;font-size:20px;letter-spacing:.02em;text-transform:uppercase}
+.direct{display:flex;align-items:center;gap:6px;color:var(--signal)}
+.pt{width:7px;height:7px;background:var(--signal);animation:bat 1.5s steps(2) infinite}
+@keyframes bat{50%{opacity:.2}}
+
+/* ---------- mur caviardé ---------- */
+.scene{position:relative;flex:1;display:flex;flex-direction:column;justify-content:flex-end;min-height:0;background:var(--gris1)}
+#mur{
+  position:absolute;inset:0;z-index:0;overflow:hidden;
+  padding:8px;column-width:158px;column-gap:14px;
+  -webkit-mask-image:linear-gradient(180deg,#000 0%,#000 26%,transparent 70%);
+  mask-image:linear-gradient(180deg,#000 0%,#000 26%,transparent 70%);
+}
+#mur .f{break-inside:avoid;margin-bottom:10px;border-left:2px solid var(--gris2);padding-left:8px}
+#mur .m{font-family:"Martian Mono",monospace;font-size:8px;letter-spacing:.02em;text-transform:uppercase;color:#A9A69E;display:block;margin-bottom:2px}
+#mur .t{font-family:"Big Shoulders Display",sans-serif;font-weight:700;font-size:16px;line-height:1.02;text-transform:uppercase;color:#9C998F;letter-spacing:.01em}
+#mur .cache{display:inline-block;background:#2A2925;color:transparent;user-select:none}
+#mur .f.chaud{border-left-color:var(--signal)}
+#mur .f.chaud .m{color:#C08074}
+
+.voile{
+  position:absolute;inset:0;z-index:1;pointer-events:none;
+  background:linear-gradient(180deg,rgba(255,255,255,0) 0%,rgba(255,255,255,.86) 44%,var(--blanc) 66%);
+}
+
+/* ---------- accroche ---------- */
+.bloc{position:relative;z-index:2;padding:0 16px 18px;max-width:620px;width:100%;margin:0 auto;background:var(--blanc)}
+
+h1{
+  font-family:"Big Shoulders Display",sans-serif;
+  font-weight:900;text-transform:uppercase;
+  font-size:clamp(52px,16vw,100px);
+  line-height:.92;letter-spacing:-.005em;
+  margin-bottom:16px;padding-top:8px;
+}
+h1 .acc{color:var(--signal)}
+
+.texte{font-size:11px;line-height:1.7;color:var(--gris);max-width:36ch;margin-bottom:20px}
+
+.entree{display:flex;border:2px solid var(--encre);background:var(--blanc)}
+.entree input{
+  flex:1;min-width:0;border:0;outline:none;background:transparent;color:var(--encre);
+  font-family:"Martian Mono",monospace;font-size:12px;padding:15px 12px;
+}
+.entree input::placeholder{color:#A9A69E}
+.entree:focus-within{border-color:var(--signal)}
+.entree button{
+  border:0;background:var(--encre);color:var(--blanc);cursor:pointer;
+  font-family:"Big Shoulders Display",sans-serif;font-weight:900;
+  font-size:20px;text-transform:uppercase;letter-spacing:.04em;
+  padding:0 22px;white-space:nowrap;transition:.15s;
+}
+.entree button:hover{background:var(--signal)}
+.entree button:focus-visible{outline:3px solid var(--signal);outline-offset:3px}
+.sous{margin-top:9px;font-size:9.5px;line-height:1.6;color:var(--gris);max-width:40ch}
+
+/* ---------- pied ---------- */
+.bas{
+  border-top:1.5px solid var(--encre);padding:10px 16px 14px;
+  display:flex;justify-content:space-between;align-items:center;gap:12px;color:var(--gris);
+  position:relative;z-index:5;flex:0 0 auto;background:var(--blanc);
+}
+.bas .res{color:var(--vert)}
+
+@media(min-width:720px){
+  #mur{column-width:210px}
+  #mur .t{font-size:19px}
+  .texte{font-size:12px}
+}
+@media(prefers-reduced-motion:reduce){.rail,.pt{animation:none}}
+</style>
+</head>
+<body>
+
+<div class="bandeau"><div class="rail" id="rail"></div></div>
+
+<header class="haut">
+  <span class="marque">Alerte Sénégal</span>
+  <span class="direct mono"><i class="pt"></i> En direct</span>
+</header>
+
+<main class="scene">
+  <div id="mur"></div>
+  <div class="voile"></div>
+
+  <div class="bloc">
+    <h1>Rejoignez la<br><span class="acc">communauté</span></h1>
+
+    <p class="texte">
+      Les alertes de votre quartier, les affaires en cours, les objets et les
+      personnes retrouvés. Réservé aux membres.
+    </p>
+
+    <div class="entree">
+      <input type="email" placeholder="votre e-mail" autocomplete="email" aria-label="Votre e-mail">
+      <button type="button">Entrer</button>
+    </div>
+    <p class="sous">Un lien vous ouvre l'accès. Vous choisissez ensuite votre quartier.</p>
+  </div>
+</main>
+
+<footer class="bas">
+  <span class="mono">109 000 nous suivent déjà</span>
+  <span class="mono res">312 affaires résolues</span>
+</footer>
+
+<script>
+const FLASH=[
+ ["Moto Jakarta rouge","Grand Yoff","il y a 6 min"],
+ ["Recherche témoins","carrefour Yoff","il y a 14 min"],
+ ["Coupure d'eau","Parcelles unité 15","il y a 22 min"],
+ ["Personne non rentrée","Rufisque","il y a 31 min"],
+ ["Portefeuille retrouvé","Plateau","résolu"],
+ ["Faux agent immobilier","Médina","vérifié"],
+ ["Route coupée par les eaux","Keur Massar","en cours"]
+];
+document.getElementById('rail').innerHTML =
+  FLASH.map(f=>'<b>'+f[0]+' · '+f[1]+' · <i>'+f[2]+'</i></b>').join('').repeat(2);
+
+const GENS=["Aïda","Ousmane","Fatou","Mamadou","Awa","Cheikh","Ndèye","Ibrahima","Sokhna","Modou","Bineta","Alioune"];
+const LIEUX=["Ngor","Pikine","Yoff","Médina","Grand Yoff","Guédiawaye","Plateau","Almadies","Rufisque","Parcelles","Ouakam","Keur Massar","Colobane","Mermoz","Thiaroye","Liberté 6","Thiès","Saint-Louis"];
+const FAITS=[
+ "MOTO JAKARTA EMPORTÉE DEVANT LE ~","COUPURE D'EAU DEPUIS ~ JOURS",
+ "RECHERCHE TÉMOINS ACCIDENT ~","FAUX AGENT, AVANCE DE ~ FCFA",
+ "TÉLÉPHONE RETROUVÉ AU NOM DE ~","EAUX STAGNANTES RUE ~",
+ "VOITURE GRISE IMMATRICULÉE ~","NON RENTRÉ DEPUIS ~",
+ "DÉLESTAGE QUOTIDIEN UNITÉ ~","VOL À L'ARRACHÉ PRÈS DE ~",
+ "TENTATIVE D'EFFRACTION NUIT DU ~","SAC TROUVÉ, PIÈCES AU NOM DE ~"
+];
+let h='';
+for(let i=0;i<64;i++){
+  const g=GENS[Math.floor(Math.random()*GENS.length)];
+  const l=LIEUX[Math.floor(Math.random()*LIEUX.length)];
+  const f=FAITS[i%FAITS.length].replace('~','<i class="cache">'+'█'.repeat(3+Math.floor(Math.random()*5))+'</i>');
+  const min=Math.floor(Math.random()*340)+3;
+  h+='<div class="f'+(min<45?' chaud':'')+'"><span class="m">'+g+' · '+l+' · '+min+' min</span><span class="t">'+f+'</span></div>';
+}
+document.getElementById('mur').innerHTML=h;
+</script>
+
+</body>
+</html>
