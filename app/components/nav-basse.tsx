@@ -1,4 +1,7 @@
+"use client";
+
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 // Pictogrammes tracés à la main, trait 1,5px, sans librairie d'icônes.
 // viewBox 24, currentColor, coins nets (linejoin miter, linecap square).
@@ -78,26 +81,38 @@ const ENTREES: Entree[] = [
 
 // Barre basse fixée dans la coque (sticky, reste dans les 420px).
 // « Signaler » au centre : seul élément terracotta plein.
+// Ce sont de vrais liens : la nav reste navigable sans JavaScript ;
+// seule la surbrillance de l'onglet actif dépend de usePathname.
 export function NavBasse() {
+  const pathname = usePathname();
+
   return (
     <nav
       className="sticky bottom-0 z-10 grid grid-cols-5 bg-fond border-t-filet-fort border-encre"
       aria-label="Navigation principale"
     >
-      {ENTREES.map(({ href, label, Icone, centre }) => (
-        <Link
-          key={href}
-          href={href}
-          className={`flex flex-col items-center gap-1 py-gap ${
-            centre ? "bg-signal text-fond" : "text-encre"
-          }`}
-        >
-          <Icone />
-          <span className="font-texte text-xs uppercase tracking-wide">
-            {label}
-          </span>
-        </Link>
-      ))}
+      {ENTREES.map(({ href, label, Icone, centre }) => {
+        const actif = pathname === href || pathname.startsWith(`${href}/`);
+        return (
+          <Link
+            key={href}
+            href={href}
+            aria-current={actif ? "page" : undefined}
+            className={`flex flex-col items-center gap-1 py-gap ${
+              centre
+                ? "bg-signal text-fond"
+                : actif
+                  ? "text-encre"
+                  : "text-gris"
+            }`}
+          >
+            <Icone />
+            <span className="font-texte text-xs uppercase tracking-wide">
+              {label}
+            </span>
+          </Link>
+        );
+      })}
     </nav>
   );
 }

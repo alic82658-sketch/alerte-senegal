@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { AlertPublic, AlertStatus } from "@/lib/types";
 
 // Lecture de données live (vue alerts_public) : rendu serveur à la demande.
+// La coque et le <main> sont fournis par le layout (app).
 export const dynamic = "force-dynamic";
 
 type PageProps = { params: Promise<{ slug: string }> };
@@ -73,47 +74,47 @@ export default async function FicheAlerte({ params }: PageProps) {
 
   const zoneName = await getZoneName(alerte.zone_id);
   const statut = STATUTS[alerte.status];
-  const dateAffichee = alerte.happened_at ?? alerte.published_at ?? alerte.created_at;
+  const dateAffichee =
+    alerte.happened_at ?? alerte.published_at ?? alerte.created_at;
 
   return (
-    <main className="as-appli">
-      <article className="flex flex-col gap-pad p-pad">
-        {/* Statuts typographiques */}
-        <div className="flex flex-wrap gap-gap">
-          <span className={`as-etat ${statut.classe}`}>{statut.label}</span>
-          {alerte.complaint_verified && (
-            <span className="as-etat as-etat--plainte">Plainte vérifiée</span>
-          )}
-        </div>
+    <article className="flex flex-col gap-pad p-pad">
+      {/* Statuts typographiques */}
+      <div className="flex flex-wrap gap-gap">
+        <span className={`as-etat ${statut.classe}`}>{statut.label}</span>
+        {alerte.complaint_verified && (
+          <span className="as-etat as-etat--plainte">Plainte vérifiée</span>
+        )}
+      </div>
 
-        <h1 className="font-titre font-black text-xl uppercase leading-tight">
-          {alerte.title}
-        </h1>
+      <h1 className="font-titre font-black text-xl uppercase leading-tight">
+        {alerte.title}
+      </h1>
 
-        {/* Méta : quartier · date */}
-        <p className="font-texte text-s text-gris uppercase tracking-wide">
-          {zoneName ? `${zoneName} · ` : ""}
-          {formatDate(dateAffichee)}
-        </p>
+      {/* Méta : quartier · date */}
+      <p className="font-texte text-s text-gris uppercase tracking-wide">
+        {zoneName ? `${zoneName} · ` : ""}
+        {formatDate(dateAffichee)}
+      </p>
 
-        <p className="font-texte text-m text-encre leading-relaxed whitespace-pre-line border-t border-gris-2 pt-pad">
-          {alerte.description}
-        </p>
+      <p className="font-texte text-m text-encre leading-relaxed whitespace-pre-line border-t border-gris-2 pt-pad">
+        {alerte.description}
+      </p>
 
-        <p className="font-texte text-s text-gris">
-          {libelleSuivis(alerte.follows_count)}
-        </p>
+      <p className="font-texte text-s text-gris">
+        {libelleSuivis(alerte.follows_count)}
+      </p>
 
-        {/* Actions — un seul élément terracotta plein (Suivre) */}
-        <div className="flex flex-col gap-gap pt-pad">
-          <button type="button" className="as-action as-action--signal w-full">
-            Suivre
-          </button>
-          <button type="button" className="as-action w-full">
-            J&apos;ai une information
-          </button>
-        </div>
-      </article>
-    </main>
+      {/* Actions. Le seul terracotta plein de l'écran est « Signaler » dans la
+          barre basse : ici les deux boutons restent en encre. */}
+      <div className="flex flex-col gap-gap pt-pad">
+        <button type="button" className="as-action w-full">
+          Suivre
+        </button>
+        <button type="button" className="as-action w-full">
+          J&apos;ai une information
+        </button>
+      </div>
+    </article>
   );
 }
