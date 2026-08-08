@@ -14,3 +14,34 @@ body {
   font-family: var(--as-texte);
   font-size: var(--as-t-m);
 }
+
+/* Coquille : défilement du bandeau et pulsation de l'indicateur « En direct ».
+   Motion uniquement — les couleurs et tailles restent dans les jetons. */
+@keyframes as-defile {
+  to {
+    transform: translateX(-50%);
+  }
+}
+.as-defile {
+  animation: as-defile 38s linear infinite;
+}
+
+@keyframes as-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.3;
+  }
+}
+.as-pulse {
+  animation: as-pulse 1.6s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .as-defile,
+  .as-pulse {
+    animation: none;
+  }
+}
