@@ -1,7 +1,6 @@
 import { redirect } from "next/navigation";
 import { TickerAlertes } from "@/app/components/ticker-alertes";
 import { createClient } from "@/lib/supabase/server";
-import { createAdminClient } from "@/lib/supabase/admin";
 
 // Écran de seuil. Rendu serveur, lisible sans JavaScript.
 export const dynamic = "force-dynamic";
@@ -37,23 +36,16 @@ async function rejoindre(formData: FormData) {
   redirect("/?statut=ok");
 }
 
-async function compterResolues(): Promise<number | null> {
+// Chiffres du pied : fonction publique stats_communaute(), exécutable par anon,
+// qui n'expose aucune donnée individuelle. Aucune clé service-role dans ce projet.
+async function statsCommunaute(): Promise<{ membres: number; resolues: number }> {
   const supabase = await createClient();
-  const { count } = await supabase
-    .from("alerts_public")
-    .select("*", { count: "exact", head: true })
-    .eq("status", "resolu");
-  return count ?? null;
-}
-
-async function compterMembres(): Promise<number | null> {
-  // profiles est protégé par RLS : lecture via le client service-role.
-  const admin = createAdminClient();
-  if (!admin) return null;
-  const { count } = await admin
-    .from("profiles")
-    .select("*", { count: "exact", head: true });
-  return count ?? null;
+  const { data } = await supabase.rpc("stats_communaute");
+  const row = Array.isArray(data) ? data[0] : data;
+  return {
+    membres: Number(row?.membres ?? 0),
+    resolues: Number(row?.affaires_resolues ?? 0),
+  };
 }
 
 export default async function Seuil({ searchParams }: SeuilProps) {
@@ -69,13 +61,8 @@ export default async function Seuil({ searchParams }: SeuilProps) {
     ? Array.from({ length: 40 }, (_, i) => base[i % base.length])
     : [];
 
-  const [membres, resolues] = await Promise.all([
-    compterMembres(),
-    compterResolues(),
-  ]);
-  // null (indisponible) et 0 sont tous deux masqués : on ne montre pas un zéro.
-  const nbMembres = membres ?? 0;
-  const nbResolues = resolues ?? 0;
+  // Un chiffre à zéro n'est pas affiché (voir le rendu du pied).
+  const { membres: nbMembres, resolues: nbResolues } = await statsCommunaute();
 
   return (
     <div className="as-appli">
