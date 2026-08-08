@@ -1,8 +1,12 @@
+import { redirect } from "next/navigation";
 import { TickerAlertes } from "@/app/components/ticker-alertes";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 // Écran de seuil. Rendu serveur, lisible sans JavaScript.
 export const dynamic = "force-dynamic";
+
+type SeuilProps = { searchParams: Promise<{ statut?: string }> };
 
 // Caviarde la fin d'un titre : on garde le début, on masque le reste.
 // Déterministe (aucun aléatoire) pour un rendu serveur stable.
@@ -14,18 +18,64 @@ function caviarder(titre: string): { visible: string; masque: number } {
   return { visible, masque };
 }
 
-export default async function Seuil() {
+// Enregistre l'e-mail dans la liste d'attente. Server action : le formulaire
+// fonctionne sans JavaScript (POST natif). RLS : insertion ouverte sur waitlist.
+async function rejoindre(formData: FormData) {
+  "use server";
+  const email = String(formData.get("email") ?? "")
+    .trim()
+    .toLowerCase();
+  if (!email || !email.includes("@")) redirect("/?statut=email");
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("waitlist")
+    .insert({ email, source: "site" });
+
+  // 23505 = e-mail déjà présent : traité comme déjà inscrit, pas une erreur.
+  if (error && error.code !== "23505") redirect("/?statut=erreur");
+  redirect("/?statut=ok");
+}
+
+async function compterResolues(): Promise<number | null> {
+  const supabase = await createClient();
+  const { count } = await supabase
+    .from("alerts_public")
+    .select("*", { count: "exact", head: true })
+    .eq("status", "resolu");
+  return count ?? null;
+}
+
+async function compterMembres(): Promise<number | null> {
+  // profiles est protégé par RLS : lecture via le client service-role.
+  const admin = createAdminClient();
+  if (!admin) return null;
+  const { count } = await admin
+    .from("profiles")
+    .select("*", { count: "exact", head: true });
+  return count ?? null;
+}
+
+export default async function Seuil({ searchParams }: SeuilProps) {
+  const { statut } = await searchParams;
+
   const supabase = await createClient();
   const { data } = await supabase
     .from("alerts_public")
     .select("title")
     .order("published_at", { ascending: false, nullsFirst: false });
   const base = ((data as { title: string }[]) ?? []).map((a) => a.title);
-
-  // Densité du mur : on répète la base si peu d'alertes publiées.
   const mur = base.length
     ? Array.from({ length: 40 }, (_, i) => base[i % base.length])
     : [];
+
+  const [membres, resolues] = await Promise.all([
+    compterMembres(),
+    compterResolues(),
+  ]);
+  // null (indisponible) et 0 sont tous deux masqués : on ne montre pas un zéro.
+  const nbMembres = membres ?? 0;
+  const nbResolues = resolues ?? 0;
 
   return (
     <div className="as-appli">
@@ -37,7 +87,7 @@ export default async function Seuil() {
           {mur.map((titre, i) => {
             const { visible, masque } = caviarder(titre);
             return (
-              <p key={i} className="as-mur-f font-titre">
+              <p key={i} className="as-mur-f">
                 {visible}{" "}
                 <span className="as-cache">{"█".repeat(masque)}</span>
               </p>
@@ -49,29 +99,65 @@ export default async function Seuil() {
         {/* Accroche */}
         <div className="relative z-[2] bg-fond px-pad pb-pad">
           <h1 className="font-titre font-black text-2xl uppercase leading-none pt-pad">
-            Alerte Sénégal
+            Rejoignez la
+            <br />
+            <span className="text-signal">communauté</span>
           </h1>
 
-          <p className="font-texte text-m text-gris leading-relaxed max-w-[34ch] mt-gap mb-pad">
-            Derrière cet écran, les signalements des quartiers.
-            <br />
-            L&apos;accès est réservé aux membres.
+          <p className="font-texte text-m text-gris leading-relaxed max-w-[36ch] mt-gap mb-pad">
+            Les signalements de votre quartier, les affaires en cours, celles
+            qui ont abouti. Réservé aux membres.
           </p>
 
-          <form className="as-champ" aria-label="Demander l'accès">
-            <input
-              type="email"
-              name="email"
-              placeholder="votre e-mail"
-              autoComplete="email"
-              aria-label="Votre e-mail"
-            />
-            <button type="button" className="as-action">
-              Entrer
-            </button>
-          </form>
+          {statut === "ok" ? (
+            <p className="font-texte text-m text-encre border-t border-gris-2 pt-pad">
+              Votre demande est enregistrée.
+            </p>
+          ) : (
+            <form action={rejoindre} aria-label="Demander l'accès">
+              <div className="as-champ">
+                <input
+                  type="email"
+                  name="email"
+                  required
+                  placeholder="votre e-mail"
+                  autoComplete="email"
+                  aria-label="Votre e-mail"
+                />
+                <button type="submit" className="as-action">
+                  Entrer
+                </button>
+              </div>
+              {statut === "email" && (
+                <p className="font-texte text-xs text-signal mt-gap">
+                  Adresse e-mail invalide.
+                </p>
+              )}
+              {statut === "erreur" && (
+                <p className="font-texte text-xs text-signal mt-gap">
+                  Une erreur est survenue. Réessayez.
+                </p>
+              )}
+            </form>
+          )}
         </div>
       </main>
+
+      {(nbMembres > 0 || nbResolues > 0) && (
+        <footer className="flex items-center justify-between gap-gap border-t-filet-fort border-encre bg-fond px-pad py-gap">
+          {nbMembres > 0 && (
+            <span className="font-texte text-xs uppercase tracking-wide text-gris">
+              {nbMembres} membre{nbMembres > 1 ? "s" : ""}
+            </span>
+          )}
+          {nbResolues > 0 && (
+            <span className="font-texte text-xs uppercase tracking-wide text-bon">
+              {nbResolues} affaire{nbResolues > 1 ? "s" : ""} résolue
+              {nbResolues > 1 ? "s" : ""}
+            </span>
+          )}
+        </footer>
+      )}
     </div>
   );
 }
