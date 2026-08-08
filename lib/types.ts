@@ -59,6 +59,8 @@ export interface AlertPublic {
   category: AlertCategory;
   status: AlertStatus;
   zone_id: string | null;
+  zone_name: string | null;
+  zone_slug: string | null;
   latitude: number | null;
   longitude: number | null;
   happened_at: string | null;
@@ -67,6 +69,9 @@ export interface AlertPublic {
   complaint_verified: boolean;
   complaint_verified_at: string | null;
   created_by: string | null;
+  author_name: string | null;
+  // Avatar servi uniquement si l'auteur a consenti (sinon null).
+  author_avatar: string | null;
   verified_at: string | null;
   resolved_at: string | null;
   decisive_tip_id: string | null;
