@@ -1,0 +1,23 @@
+/* Les jetons d'abord : ils définissent les variables que Tailwind consomme. */
+@import "../design/tokens.css";
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+ * Étape 1 (socle) : Tailwind est branché sur tokens.css.
+ * Les polices Big Shoulders Display / Martian Mono restent déclarées dans
+ * tokens.css comme familles ; leur auto-hébergement (next/font) est une étape
+ * distincte, en attente d'un arbitrage sur le nom « Big Shoulders Display »
+ * fusionné en « Big Shoulders » côté Google Fonts. Voir docs/decisions.md.
+ */
+html {
+  background: var(--as-fond);
+  color: var(--as-encre);
+}
+
+body {
+  font-family: var(--as-texte);
+  font-size: var(--as-t-m);
+}
