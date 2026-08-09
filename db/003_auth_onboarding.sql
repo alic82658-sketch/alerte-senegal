@@ -404,6 +404,9 @@ create policy waves_admin on public.waves for all
 grant select on public.waves to anon, authenticated;
 -- Privilège d'écriture large, réellement borné par la policy is_admin().
 grant insert, update, delete on public.waves to authenticated;
+-- Supabase accorde ALL par défaut à anon à la création : on lui retire l'écriture
+-- (il ne garde que SELECT). RLS is_admin() bloquait déjà, ceci ferme au niveau privilège.
+revoke insert, update, delete on public.waves from anon;
 
 -- HELP_DOMAINS : lecture publique, écriture admin.
 alter table public.help_domains enable row level security;
@@ -413,6 +416,7 @@ create policy help_domains_admin on public.help_domains for all
 
 grant select on public.help_domains to anon, authenticated;
 grant insert, update, delete on public.help_domains to authenticated;
+revoke insert, update, delete on public.help_domains from anon;
 
 -- MEMBERSHIPS : le membre voit sa propre admission, le staff voit tout.
 -- Aucune policy d'écriture client : la table n'est écrite que par
@@ -432,11 +436,15 @@ grant select on public.memberships to authenticated;
 revoke all on function public.handle_new_user() from public, anon, authenticated;
 revoke all on function public.set_updated_at()  from public, anon, authenticated;
 
--- Fonctions appelables : on retire le grant PUBLIC implicite, puis on cible.
-revoke all on function public.terminer_onboarding() from public;
+-- Fonctions appelables : on retire le grant PUBLIC implicite ET le grant anon
+-- ajouté par les privilèges par défaut de Supabase (sinon anon peut appeler la
+-- RPC — sans effet utile car auth.uid() est null, mais à fermer proprement),
+-- puis on cible authenticated. Seule cohorte_etat reste ouverte à anon (écran de
+-- seuil pré-auth, n'expose que des agrégats — même modèle que stats_communaute).
+revoke all on function public.terminer_onboarding() from public, anon;
 grant execute on function public.terminer_onboarding() to authenticated;
 
-revoke all on function public.rejoindre_cohorte() from public;
+revoke all on function public.rejoindre_cohorte() from public, anon;
 grant execute on function public.rejoindre_cohorte() to authenticated;
 
 revoke all on function public.cohorte_etat() from public;
