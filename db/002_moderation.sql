@@ -28,8 +28,11 @@
 --      (ajoutées en base avec creer_signalement, hors 001_schema.sql).
 -- =========================================================
 
--- pgcrypto fournit crypt() et gen_salt() ; déjà activé en 001, rappel idempotent.
-create extension if not exists "pgcrypto";
+-- pgcrypto fournit crypt() et gen_salt(). Chez Supabase, l'extension est
+-- installée dans le schéma `extensions` (pas `public`) : on qualifie donc
+-- tous les appels par extensions.crypt() / extensions.gen_salt(), et le
+-- search_path des fonctions inclut `extensions`. Rappel idempotent.
+create extension if not exists pgcrypto with schema extensions;
 
 -- =========================================================
 -- 1. TABLE PRIVÉE DU SECRET (hash bcrypt, jamais en clair)
@@ -54,7 +57,7 @@ revoke all on table moderation_secrets from anon, authenticated;
 
 -- Enregistrement du secret. REMPLACER la passphrase avant d'appliquer.
 insert into moderation_secrets (id, secret_hash)
-values (1, crypt('__REMPLACER_PAR_LA_PASSPHRASE__', gen_salt('bf', 10)))
+values (1, extensions.crypt('__REMPLACER_PAR_LA_PASSPHRASE__', extensions.gen_salt('bf', 10)))
 on conflict (id) do update
   set secret_hash = excluded.secret_hash,
       updated_at  = now();
@@ -70,13 +73,13 @@ returns boolean
 language sql
 stable
 security definer
-set search_path = public
+set search_path = public, extensions
 as $$
   select exists (
     select 1
     from moderation_secrets
     where id = 1
-      and secret_hash = crypt(coalesce(p_secret, ''), secret_hash)
+      and secret_hash = extensions.crypt(coalesce(p_secret, ''), secret_hash)
   );
 $$;
 
@@ -86,7 +89,7 @@ create or replace function moderation_exiger_secret(p_secret text)
 returns void
 language plpgsql
 security definer
-set search_path = public
+set search_path = public, extensions
 as $$
 begin
   if not moderation_valider(p_secret) then
@@ -122,7 +125,7 @@ returns table (
 language plpgsql
 stable
 security definer
-set search_path = public
+set search_path = public, extensions
 as $$
 begin
   perform moderation_exiger_secret(p_secret);
@@ -152,7 +155,7 @@ create or replace function moderation_publier(p_secret text, p_alert_id uuid)
 returns void
 language plpgsql
 security definer
-set search_path = public
+set search_path = public, extensions
 as $$
 begin
   perform moderation_exiger_secret(p_secret);
@@ -176,7 +179,7 @@ create or replace function moderation_rejeter(p_secret text, p_alert_id uuid, p_
 returns void
 language plpgsql
 security definer
-set search_path = public
+set search_path = public, extensions
 as $$
 begin
   perform moderation_exiger_secret(p_secret);
@@ -205,7 +208,7 @@ create or replace function moderation_demander_verification(p_secret text, p_ale
 returns void
 language plpgsql
 security definer
-set search_path = public
+set search_path = public, extensions
 as $$
 begin
   perform moderation_exiger_secret(p_secret);
@@ -228,7 +231,7 @@ create or replace function moderation_verifier_plainte(p_secret text, p_alert_id
 returns void
 language plpgsql
 security definer
-set search_path = public
+set search_path = public, extensions
 as $$
 begin
   perform moderation_exiger_secret(p_secret);
