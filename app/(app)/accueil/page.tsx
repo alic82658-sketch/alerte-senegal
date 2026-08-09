@@ -94,6 +94,47 @@ export default async function Accueil({ searchParams }: AccueilProps) {
 
   return (
     <div className="flex flex-col">
+      {/* Recherche en tête : porte d'entrée vers la vérification.
+          Formulaire GET vers /verifier, fonctionne sans JavaScript. */}
+      <form
+        method="get"
+        action="/verifier"
+        className="border-b border-gris-2 px-pad py-pad"
+        role="search"
+      >
+        <div className="as-champ">
+          <input
+            type="text"
+            name="q"
+            placeholder="Vérifier un numéro, une plaque, un IMEI"
+            aria-label="Vérifier un numéro, une plaque ou un IMEI"
+            autoComplete="off"
+            autoCapitalize="characters"
+            spellCheck={false}
+          />
+          <button
+            type="submit"
+            aria-label="Vérifier"
+            className="flex items-center justify-center bg-encre px-4 text-fond"
+          >
+            <svg
+              width={22}
+              height={22}
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={1.5}
+              strokeLinecap="square"
+              strokeLinejoin="miter"
+              aria-hidden="true"
+            >
+              <circle cx="10.5" cy="10.5" r="6" />
+              <path d="M15 15 L20 20" />
+            </svg>
+          </button>
+        </div>
+      </form>
+
       {/* Titre de section + sélecteur de zone (non interactif) */}
       <div className="flex items-center justify-between gap-gap px-pad pt-pad pb-gap">
         <h2 className="font-titre font-black text-l uppercase tracking-tight">
