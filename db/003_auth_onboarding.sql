@@ -3,10 +3,18 @@
 -- Migration 003
 -- =========================================================
 --
--- Contexte : première brique d'authentification réelle (OTP téléphone). Elle
--- pose les cohortes/vagues, le badge PIONNIER, les champs d'onboarding, et
--- surtout VERROUILLE profiles contre la falsification de champs sensibles
--- (phone, role, is_banned) une fois qu'il existe de vrais comptes authentifiés.
+-- Contexte : première brique d'authentification réelle. En V1, l'auth est par
+-- E-MAIL (OTP par code), PAS par SMS — projet autofinancé, exploité par une
+-- personne, priorité V1 : valider usage/rétention/entraide sur les 100 premiers
+-- membres avant tout coût SMS.
+--
+-- Le numéro de téléphone est COLLECTÉ EN OPTION mais NON VÉRIFIÉ en V1 : c'est
+-- un champ déclaré, éditable par le membre, présenté partout comme « non
+-- vérifié ». Aucune fonctionnalité ne le traite comme une preuve d'identité.
+-- Crochet de compatibilité pour plus tard : la colonne système
+-- profiles.phone_verified_at (null en V1) permettra, quand une vérification OTP
+-- téléphone sera ajoutée, de réserver les actions à confiance élevée à un numéro
+-- vérifié — sans refonte.
 --
 -- Ne touche PAS au registre : aucune modification de `alerts`
 -- (imei, plate, phone_number, account_number), du bloc plainte, de
@@ -15,8 +23,8 @@
 -- rétro-migrées (le vrai created_by arrive en 004).
 --
 -- ATTENTION AVANT D'APPLIQUER :
---   1. Les triggers sur `auth.users` exigent un rôle propriétaire : appliquer
---      via le connecteur Supabase (postgres/supabase_admin), pas via anon.
+--   1. Le trigger sur `auth.users` exige un rôle propriétaire : appliquer via le
+--      connecteur Supabase (postgres/supabase_admin), pas via anon.
 --   2. Après application, deux gestes manuels côté admin (par toi) :
 --        a. Promouvoir ton compte opérateur :
 --             update public.profiles set role = 'admin' where id = '<ton_uid>';
@@ -29,11 +37,19 @@
 --      curer : ajoute/retire des lignes sans jamais toucher au type (table de
 --      référence, pas enum — la taxonomie peut évoluer par simple insert).
 --   4. Câblage applicatif (migrations B1/B2, hors SQL) :
---        - après une vérification OTP réussie : appeler public.rejoindre_cohorte()
+--        - après une vérification OTP e-mail réussie : appeler public.rejoindre_cohorte()
 --        - à la fin (ou au saut) de l'onboarding : appeler public.terminer_onboarding()
+--        - le téléphone n'est PAS central dans l'onboarding tant qu'il n'est pas
+--          vérifié : champ facultatif, libellé « non vérifié », jamais un écran
+--          dédié proéminent.
 --        - le prénom/pseudo est obligatoire AVANT toute publication : ce verrou
 --          est posé en 004 (flux Publier), en comparant display_name au
 --          placeholder ci-dessous. Ne jamais publier sous « Nouveau membre ».
+--   5. Compat future : quand l'OTP téléphone sera ajouté, la fonction de
+--      vérification (definer) posera phone_verified_at, et devra invalider
+--      (remettre à null) phone_verified_at si le membre change ensuite son
+--      numéro. Inutile en V1 (phone_verified_at reste null, aucun chemin ne le
+--      pose).
 -- =========================================================
 
 -- =========================================================
@@ -76,14 +92,20 @@ insert into public.help_domains (slug, label, position) values
 -- =========================================================
 -- 3. PROFILES — nouvelles colonnes
 -- =========================================================
--- Éditables par le membre (onboarding) : join_reason, help_domain.
--- Système (écrites par terminer_onboarding, definer) : onboarding_done,
--- onboarded_at. display_name / zone_id existent déjà et restent éditables.
+-- Éditables par le membre (onboarding/profil) : join_reason, help_domain.
+--   (phone est aussi éditable — déclaré/non vérifié — voir section 8.)
+-- Système (jamais écrites par le client) :
+--   onboarding_done / onboarded_at -> posées par terminer_onboarding() (definer)
+--   phone_verified_at              -> null en V1 ; future fonction de vérif OTP
+--                                     téléphone uniquement. Sépare le numéro
+--                                     déclaré (phone) de son éventuelle preuve.
+-- display_name / zone_id / phone existent déjà (db/001) et restent éditables.
 alter table public.profiles
-  add column join_reason      public.join_reason,
-  add column help_domain      text references public.help_domains(slug),
-  add column onboarding_done  boolean not null default false,
-  add column onboarded_at     timestamptz;
+  add column join_reason       public.join_reason,
+  add column help_domain       text references public.help_domains(slug),
+  add column onboarding_done   boolean not null default false,
+  add column onboarded_at      timestamptz,
+  add column phone_verified_at timestamptz;   -- null en V1 (téléphone non vérifié)
 
 -- =========================================================
 -- 4. WAVES — configuration des vagues (éditable par l'admin)
@@ -115,6 +137,8 @@ values ('2026', 1, 100, 100, true, false);
 -- =========================================================
 -- 5. MEMBERSHIPS — admission & badge (attribué, jamais éditable par le membre)
 -- =========================================================
+-- « Admis » = compte E-MAIL vérifié rejoignant la vague ouverte (V1). Les 100
+-- premiers admis de la vague 2026 reçoivent PIONNIER · 2026.
 create table public.memberships (
   profile_id    uuid primary key references public.profiles(id) on delete cascade,
   wave_id       uuid not null references public.waves(id),
@@ -135,9 +159,9 @@ create unique index memberships_pionnier_rank
 -- Toutes en security definer avec search_path = '' et noms qualifiés.
 -- pg_catalog reste implicitement résolu (now(), count(), coalesce(), greatest…).
 
--- 6.1 Création du profil à l'inscription auth. Le miroir profiles.phone est
---     seedé ici depuis la source de vérité auth.users.phone. N'admet PAS dans
---     une vague (l'admission passe par rejoindre_cohorte, appelée par l'app).
+-- 6.1 Création du profil à l'inscription auth. En V1 (auth e-mail), aucun numéro
+--     n'est renseigné ici : le téléphone reste null jusqu'à déclaration
+--     facultative par le membre.
 create or replace function public.handle_new_user()
 returns trigger
 language plpgsql
@@ -145,29 +169,14 @@ security definer
 set search_path = ''
 as $$
 begin
-  insert into public.profiles (id, display_name, phone)
-  values (new.id, 'Nouveau membre', new.phone)
+  insert into public.profiles (id, display_name)
+  values (new.id, 'Nouveau membre')
   on conflict (id) do nothing;
   return new;
 end;
 $$;
 
--- 6.2 Synchronisation du miroir profiles.phone quand le numéro change côté
---     auth (flux OTP de changement de téléphone). auth.users.phone reste la
---     seule autorité ; profiles.phone ne fait que suivre.
-create or replace function public.sync_profile_phone()
-returns trigger
-language plpgsql
-security definer
-set search_path = ''
-as $$
-begin
-  update public.profiles set phone = new.phone where id = new.id;
-  return new;
-end;
-$$;
-
--- 6.3 Bump automatique de updated_at (posé par le trigger, pas par le membre —
+-- 6.2 Bump automatique de updated_at (posé par le trigger, pas par le membre —
 --     updated_at n'est pas dans les colonnes re-grantées).
 create or replace function public.set_updated_at()
 returns trigger
@@ -180,7 +189,7 @@ begin
 end;
 $$;
 
--- 6.4 Fin d'onboarding : champs système onboarding_done / onboarded_at.
+-- 6.3 Fin d'onboarding : champs système onboarding_done / onboarded_at.
 --     Appelée par l'app à la fin (ou au saut jusqu'au bout) de l'onboarding.
 create or replace function public.terminer_onboarding()
 returns void
@@ -202,9 +211,12 @@ begin
 end;
 $$;
 
--- 6.5 Admission atomique dans la vague courante + attribution PIONNIER.
+-- 6.4 Admission atomique dans la vague courante + attribution PIONNIER.
 --     Idempotente. Le SELECT ... FOR UPDATE sur la vague sérialise les
 --     admissions concurrentes : le comptage est exact, jamais de 101e badge.
+--     Marque aussi waitlist.converted_at en rapprochant l'e-mail du compte
+--     (auth.users.email) de la liste d'attente : l'auth e-mail partage la clé
+--     de waitlist, la conversion est donc traçable.
 --     Exceptions renvoyées à l'app :
 --       non_authentifie       -> appel sans session
 --       aucune_vague_courante -> config incohérente (aucune vague is_current)
@@ -261,6 +273,12 @@ begin
   insert into public.memberships (profile_id, wave_id, is_pionnier, pionnier_rank)
   values (v_uid, v_wave.id, v_pio, case when v_pio then v_rank else null end);
 
+  -- Conversion de la liste d'attente : rapprochement par e-mail du compte.
+  update public.waitlist w
+     set converted_at = now()
+   where w.converted_at is null
+     and w.email = (select u.email from auth.users u where u.id = v_uid);
+
   out_wave_label    := v_wave.label;
   out_is_pionnier   := v_pio;
   out_pionnier_rank := case when v_pio then v_rank else null end;
@@ -268,7 +286,7 @@ begin
 end;
 $$;
 
--- 6.6 État public de la vague courante (agrégats seulement, aucune donnée
+-- 6.5 État public de la vague courante (agrégats seulement, aucune donnée
 --     individuelle — même esprit que stats_communaute()). Alimente le compteur
 --     de places restantes de l'écran de seuil.
 create or replace function public.cohorte_etat()
@@ -321,13 +339,6 @@ create trigger on_auth_user_created
   after insert on auth.users
   for each row execute function public.handle_new_user();
 
-drop trigger if exists on_auth_user_phone_changed on auth.users;
-create trigger on_auth_user_phone_changed
-  after update of phone on auth.users
-  for each row
-  when (new.phone is distinct from old.phone)
-  execute function public.sync_profile_phone();
-
 drop trigger if exists profiles_set_updated_at on public.profiles;
 create trigger profiles_set_updated_at
   before update on public.profiles
@@ -342,10 +353,12 @@ create trigger profiles_set_updated_at
 -- TABLE, puis on re-grante UPDATE colonne par colonne, uniquement pour les
 -- champs que le membre édite lui-même.
 --
--- Jamais re-grantées (donc immuables côté client) : phone, role, is_banned, id,
--- created_at, updated_at, onboarding_done, onboarded_at. Ces deux dernières
--- sont posées par terminer_onboarding() (definer, exécutée en propriétaire,
--- non soumise aux privilèges de colonne).
+-- phone EST éditable (numéro déclaré, non vérifié en V1) : il figure dans la
+-- liste. Ce qui reste immuable côté client (jamais re-granté) : phone_verified_at
+-- (preuve, posée par definer seulement), role, is_banned, id, created_at,
+-- updated_at, onboarding_done, onboarded_at. Ces deux dernières sont posées par
+-- terminer_onboarding() (definer, exécutée en propriétaire, non soumise aux
+-- privilèges de colonne).
 revoke insert, update on public.profiles from anon, authenticated;
 
 grant update (
@@ -353,6 +366,7 @@ grant update (
   avatar_url,
   avatar_public,
   zone_id,
+  phone,
   join_reason,
   help_domain
 ) on public.profiles to authenticated;
@@ -408,9 +422,8 @@ grant select on public.memberships to authenticated;
 -- 10. DROITS D'EXÉCUTION DES FONCTIONS
 -- =========================================================
 -- Fonctions de trigger : jamais appelées directement.
-revoke all on function public.handle_new_user()    from public, anon, authenticated;
-revoke all on function public.sync_profile_phone() from public, anon, authenticated;
-revoke all on function public.set_updated_at()      from public, anon, authenticated;
+revoke all on function public.handle_new_user() from public, anon, authenticated;
+revoke all on function public.set_updated_at()  from public, anon, authenticated;
 
 -- Fonctions appelables : on retire le grant PUBLIC implicite, puis on cible.
 revoke all on function public.terminer_onboarding() from public;
