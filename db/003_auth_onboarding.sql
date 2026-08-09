@@ -107,6 +107,13 @@ alter table public.profiles
   add column onboarded_at      timestamptz,
   add column phone_verified_at timestamptz;   -- null en V1 (téléphone non vérifié)
 
+-- NB dépendance : les helpers de rôle sont maintenus EN BASE dans le schéma
+-- `private` (private.is_staff() / private.is_admin()), pas `public` — durcissement
+-- appliqué en base (les fonctions security definer sont sorties du schéma exposé
+-- par l'API). Le dépôt db/001_schema.sql les déclare encore en `public` : divergence
+-- connue, la base fait autorité. Les policies ci-dessous les référencent donc en
+-- `private.` pour rester cohérentes avec le reste de la base (zones, alerts, profiles).
+
 -- =========================================================
 -- 4. WAVES — configuration des vagues (éditable par l'admin)
 -- =========================================================
@@ -392,7 +399,7 @@ create policy profiles_update_self on public.profiles
 alter table public.waves enable row level security;
 create policy waves_read  on public.waves for select using (true);
 create policy waves_admin on public.waves for all
-  using (public.is_admin()) with check (public.is_admin());
+  using (private.is_admin()) with check (private.is_admin());
 
 grant select on public.waves to anon, authenticated;
 -- Privilège d'écriture large, réellement borné par la policy is_admin().
@@ -402,7 +409,7 @@ grant insert, update, delete on public.waves to authenticated;
 alter table public.help_domains enable row level security;
 create policy help_domains_read  on public.help_domains for select using (true);
 create policy help_domains_admin on public.help_domains for all
-  using (public.is_admin()) with check (public.is_admin());
+  using (private.is_admin()) with check (private.is_admin());
 
 grant select on public.help_domains to anon, authenticated;
 grant insert, update, delete on public.help_domains to authenticated;
@@ -413,7 +420,7 @@ grant insert, update, delete on public.help_domains to authenticated;
 -- direct en écriture, on ne laisse que SELECT (borné par la policy).
 alter table public.memberships enable row level security;
 create policy memberships_read_self on public.memberships for select
-  using (profile_id = auth.uid() or public.is_staff());
+  using (profile_id = auth.uid() or private.is_staff());
 
 revoke all on public.memberships from anon, authenticated;
 grant select on public.memberships to authenticated;
