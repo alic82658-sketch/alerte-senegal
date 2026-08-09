@@ -27,7 +27,8 @@ function IconeAccueil() {
   );
 }
 
-function IconeExplorer() {
+function IconeVerifier() {
+  // Loupe : vérifier un identifiant. L'icône convient déjà à ce sens.
   return (
     <svg {...svgProps}>
       <circle cx="10.5" cy="10.5" r="6" />
@@ -73,7 +74,7 @@ type Entree = {
 
 const ENTREES: Entree[] = [
   { href: "/accueil", label: "Accueil", Icone: IconeAccueil },
-  { href: "/explorer", label: "Explorer", Icone: IconeExplorer },
+  { href: "/verifier", label: "Vérifier", Icone: IconeVerifier },
   { href: "/signaler", label: "Signaler", Icone: IconeSignaler, centre: true },
   { href: "/suivis", label: "Suivis", Icone: IconeSuivis },
   { href: "/profil", label: "Profil", Icone: IconeProfil },
