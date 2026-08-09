@@ -17,13 +17,38 @@ import { NextResponse, type NextRequest } from "next/server";
  * Les chemins publics et indexables (/, /verifier, /alerte, /moderation, assets)
  * ne déclenchent AUCUN appel d'authentification : on préserve la performance et
  * le rendu serveur (Lighthouse, fiches SSR).
+ *
+ * ┌─ RÈGLE DE MAINTENANCE (à respecter AVANT tout merge) ───────────────────┐
+ * │ La protection est une allowlist par PRÉFIXES (posture default-open : un  │
+ * │ chemin non listé est servi sans contrôle d'auth). Toute NOUVELLE route   │
+ * │ réservée aux membres DOIT être ajoutée à MEMBRE ci-dessous — sinon elle  │
+ * │ est publique par défaut. Le préfixe couvre la racine ET ses sous-routes  │
+ * │ (voir estSous()), donc « /accueil » protège aussi « /accueil/xxx ».      │
+ * │ (L'inversion en default-deny + allowlist publique est notée mais non     │
+ * │  encore appliquée — cf. docs/decisions.md, durcissement B.)              │
+ * └─────────────────────────────────────────────────────────────────────────┘
  */
+
+// Routes réservées aux membres admis + onboardés. AJOUTER ICI toute nouvelle
+// route membre (le matching couvre la racine et ses sous-routes).
+const MEMBRE = ["/accueil", "/signaler"];
+const ENTREE = ["/entrer"];
+const ATTENTE = ["/attente"];
+const ONBOARDING = ["/onboarding"];
+
+// Correspondance de préfixe SÛRE : vraie pour la base exacte OU un sous-chemin
+// (base + "/"), jamais pour un simple voisinage textuel (« /accueil-public »
+// ne matche pas « /accueil »).
+function estSous(path: string, bases: string[]): boolean {
+  return bases.some((base) => path === base || path.startsWith(base + "/"));
+}
+
 export async function updateSession(request: NextRequest) {
   const path = request.nextUrl.pathname;
-  const isEntry = path === "/entrer" || path.startsWith("/entrer/");
-  const isMembre = path === "/accueil" || path === "/signaler";
-  const isAttente = path === "/attente";
-  const isOnboarding = path === "/onboarding" || path.startsWith("/onboarding/");
+  const isEntry = estSous(path, ENTREE);
+  const isMembre = estSous(path, MEMBRE);
+  const isAttente = estSous(path, ATTENTE);
+  const isOnboarding = estSous(path, ONBOARDING);
 
   if (!(isEntry || isMembre || isAttente || isOnboarding)) {
     return NextResponse.next({ request });
