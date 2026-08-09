@@ -28,7 +28,7 @@ Retourne une ligne :
 | `type_detecte` | text | `imei`, `telephone`, `plaque` ou `autre` |
 | `nb_signalements` | int | total de signalements correspondants |
 | `nb_verifies` | int | dont vérifiés par Alerte Sénégal (toujours distingué de `nb_signalements`, cf. critères) |
-| `nb_plaintes` | int | plaintes déclarées |
+| `nb_plaintes` | int | plaintes **vérifiées** par Alerte Sénégal (jamais les plaintes seulement déclarées) |
 | `dernier_le` | timestamptz | date du signalement le plus récent |
 | `zones` | text[] | zones concernées |
 | `categories` | text[] | catégories concernées |
